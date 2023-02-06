@@ -1,0 +1,9 @@
+version: '3.2'
+services:
+  test:
+    environment:
+      - test1=$testvar1
+      - test2=$testvar2
+    build: 
+      context: .
+      dockerfile: ./env-dockerfile
