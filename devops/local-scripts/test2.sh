@@ -70,8 +70,9 @@ function get_and_modify_dockerfile {
     dockerfile="$dockerfile"$'\n'""
     dockerfile="$dockerfile"$'\n'"ENV GIT_TOKEN='$GITHUB_TOKEN'"
     dockerfile="$dockerfile"$'\n'"ENV REPO_SEGMENT='$repo_segment'"
+    dockerfile="$dockerfile"$'\n'"ENV REPO_SHA='$sha'"
     dockerfile="$dockerfile"$'\n'"WORKDIR /app/services"
-    dockerfile="$dockerfile"$'\n''RUN wget --header="Authorization: token ${GIT_TOKEN}" "https://api.github.com/repos/${REPO_SEGMENT}/tarball/7d4803b147c310d8e0e743bc525aed7bfb0a11e5" -O - | tar -xz --strip-components=1'
+    dockerfile="$dockerfile"$'\n''RUN wget --header="Authorization: token ${GIT_TOKEN}" "https://api.github.com/repos/${REPO_SEGMENT}/tarball/${REPO_SHA}" -O - | tar -xz --strip-components=1'
     dockerfile="$dockerfile"$'\n''RUN echo ${GIT_TOKEN}'
     dockerfile="$dockerfile"$'\n''RUN ls'
   else
