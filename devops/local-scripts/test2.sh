@@ -25,6 +25,10 @@ function get_sha {
     local auth_token="Authorization: token $SCRIPT_GIT_TOKEN"
     local curl_result=$(curl -H "$headers" -H "$auth_token" "$api_url")
     local sha=$(curl -H "$headers" -H "$auth_token" "$api_url" | jq -r '.commit.sha')
+    
+    if [ -z "$sha"]; then
+        exit 4
+    fi
 
     echo "$sha"
   fi
@@ -63,16 +67,17 @@ function get_and_modify_dockerfile {
     # Get the Dockerfile from the repository
     response=$(get_github_file "$repo_name" "$implementation.Dockerfile" "$sha")
     dockerfile=$(echo "$response" | jq -r '.content' | base64 -d)
-    dockerfile="$dockerfile"$'\n'"RUN apk update && \apk add git"
+    dockerfile="$dockerfile"$'\n'""
     dockerfile="$dockerfile"$'\n'"ENV GIT_TOKEN='$GITHUB_TOKEN'"
     dockerfile="$dockerfile"$'\n'"ENV REPO_SEGMENT='$repo_segment'"
     dockerfile="$dockerfile"$'\n'"WORKDIR /app/services"
-    dockerfile="$dockerfile"$'\n''RUN git clone --depth 1 https://${GIT_TOKEN}@github.com/${REPO_SEGMENT}.git .'
-    dockerfile="$dockerfile"$'\n''RUN git checkout -q '$sha
+    dockerfile="$dockerfile"$'\n''RUN wget --header="Authorization: token ${GIT_TOKEN}" "https://api.github.com/repos/${REPO_SEGMENT}/tarball/7d4803b147c310d8e0e743bc525aed7bfb0a11e5" -O - | tar -xz --strip-components=1'
     dockerfile="$dockerfile"$'\n''RUN echo ${GIT_TOKEN}'
+    dockerfile="$dockerfile"$'\n''RUN ls'
   else
     # Append the necessary content to the local Dockerfile
     dockerfile=$(cat "$path/$implementation.Dockerfile")
+    dockerfile="$dockerfile"$'\n'"WORKDIR /app/services"
   fi
 
   echo "$dockerfile"
@@ -114,6 +119,10 @@ while read -r line; do
     repo_name=$(jq -r '.ServiceRepo.name' <<< "$line")
     sha=$(jq -r '.ServiceRepo.sha' <<< "$line")
     sha=$(get_sha "$repo_name" "$sha")
+    if [ -z "$sha" ]; then
+        echo "my_function encountered an error"
+        exit 1
+    fi
     implementation=$(jq -r '.ServiceRepo.implementation' <<< "$line")
     path="$repo_name/service-root/$implementation"
   else
