@@ -3,17 +3,30 @@
 input_file="../input.json"
 array=()
 
+function get_sha {
+  local repo_name="$1"
+  local branch="$2"
+
+  if [ -n "$branch" ]; then
+    echo "$branch"
+  else
+    local api_url="https://api.github.com/repos/${repo_name}"
+    local headers="Accept: application/vnd.github+json"
+    local auth_token="Authorization: token ${GITHUB_TOKEN}"
+
+    local sha=$(curl  "$api_url" | jq -r '.commit.sha')
+    echo "$sha"
+  fi
+}
+
 get_label() {
-  local line=$1
-  local name=$(jq -r '.ServiceName' <<< "$line")
-  local ref_type=$(jq -r '.ReferenceType' <<< "$line")
+  local name="$1"
+  local ref_type="$2"
+  local sha="$3"
   local label
   if [ "$ref_type" == "repo" ]; then
-    local repo_url=$(jq -r '.ServiceRepo.name' <<< "$line")
-    local sha=$(jq -r '.ServiceRepo.sha' <<< "$line")
     label="$name-$sha"
   else
-    local path=$(jq -r '.ServiceData.path' <<< "$line")
     label="$name"
   fi
   echo "$label"
@@ -54,9 +67,11 @@ function get_and_modify_dockerfile {
   local dockerfile=""
   if [ "$reference_type" = "repo" ]; then
     # Get the Dockerfile from the repository
-    dockerfile=$(git -C "$repo_name" show "$sha:$implementation.Dockerfile")
+    repo_segment=$(echo $repo_name | sed 's:/branches.*$::')
+    $repo_segment
+    dockerfile=$(git -C "https://api.github.com/repos/$repo_segment" show "$sha:service-root/$implementation.Dockerfile")
     # Append the necessary content to the Dockerfile based on the implementation
-    dockerfile="$dockerfile"$'\n'"RUN cd /app/services/${repo_name} && git checkout $sha && cd $implementation && pwd && ls"
+    #dockerfile="$dockerfile"$'\n'"RUN cd /app/services && git checkout $sha && cd ./service-root && pwd && ls"
   else
     # Append the necessary content to the local Dockerfile
     dockerfile=$(cat "$path/$implementation.Dockerfile")
@@ -67,9 +82,7 @@ function get_and_modify_dockerfile {
 
 while read -r line; do
   name=$(jq -r '.ServiceName' <<< "$line")
-  label=$(get_label "$line")
   name=$(echo "$name" | tr '[:upper:]' '[:lower:]')
-  label=$(echo "$label" | tr '[:upper:]' '[:lower:]')
 
   reference_type=$(jq -r '.ReferenceType' <<< "$line")
   repo_name=""
@@ -80,6 +93,7 @@ while read -r line; do
   if [ "$reference_type" == "repo" ]; then
     repo_name=$(jq -r '.ServiceRepo.name' <<< "$line")
     sha=$(jq -r '.ServiceRepo.sha' <<< "$line")
+    sha=$(get_sha "$repo_name" "$sha")
     implementation=$(jq -r '.ServiceRepo.implementation' <<< "$line")
     path="$repo_name/service-root/$implementation"
   else
@@ -87,6 +101,9 @@ while read -r line; do
     implementation=$(jq -r '.ServiceData.implementation' <<< "$line")
   fi
 
+  label=$(get_label "$name" "$reference_type" "$sha")
+  label=$(echo "$label" | tr '[:upper:]' '[:lower:]')
+  echo $label
   rebuild=false
   if [ "$reference_type" == "local" ]; then
     rebuild=true

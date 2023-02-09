@@ -1,5 +1,4 @@
 [
-
     {
         "ServiceName": "Local_Service",
         "ReferenceType": "local",
@@ -9,12 +8,12 @@
         }
     },
     {
-    "ServiceName": "Service_1",
-    "ReferenceType": "repo",
-    "ServiceRepo": {
-        "name": "https://github.com/user/service1.git",
-        "sha": "a1b2c3d4e5f6g7h8i9j0",
-        "implementation": "mock"
+        "ServiceName": "Service_1",
+        "ReferenceType": "repo",
+        "ServiceRepo": {
+            "name": "casper-ultimate/test-docker-push/branches/main",
+            "sha": "",
+            "implementation": "concrete"
         }
     }
 ]
