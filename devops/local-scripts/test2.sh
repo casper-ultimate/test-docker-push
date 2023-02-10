@@ -24,7 +24,7 @@ function get_sha {
     local headers="Accept: application/vnd.github+json"
     local auth_token="Authorization: token $SCRIPT_GIT_TOKEN"
     local curl_result=$(curl -H "$headers" -H "$auth_token" "$api_url")
-    local sha=$(curl -H "$headers" -H "$auth_token" "$api_url" | jq -r '.commit.sha')
+    local sha=$(curl -H "$headers" -H "$auth_token" "$api_url" | grep '"sha"' | head -n 1 | cut -d '"' -f 4 | cut -c1-7)
     
     if [ -z "$sha" ]; then
         exit 4
@@ -71,7 +71,7 @@ function get_and_modify_dockerfile {
     dockerfile="$dockerfile"$'\n'"ENV REPO_SEGMENT='$repo_segment'"
     dockerfile="$dockerfile"$'\n'"ENV REPO_SHA='$sha'"
     dockerfile="$dockerfile"$'\n'"WORKDIR /app/services"
-    dockerfile="$dockerfile"$'\n''RUN wget --header="Authorization: token ${GIT_TOKEN}" "https://api.github.com/repos/${REPO_SEGMENT}/tarball/${REPO_SHA}" -O - | tar -xzvf - --strip-components=3 casper-ultimate-test-docker-push-7d4803b/service-root/'$implementation
+    dockerfile="$dockerfile"$'\n''RUN wget --header="Authorization: token ${GIT_TOKEN}" "https://api.github.com/repos/${REPO_SEGMENT}/tarball/${REPO_SHA}" -O - | tar -xzvf - --strip-components=3 casper-ultimate-test-docker-push-${REPO_SHA}/service-root/'$implementation
     dockerfile="$dockerfile"$'\n''RUN echo ${GIT_TOKEN}'
     dockerfile="$dockerfile"$'\n''RUN ls'
   else
