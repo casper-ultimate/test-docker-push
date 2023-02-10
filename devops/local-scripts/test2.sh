@@ -26,7 +26,7 @@ function get_sha {
     local curl_result=$(curl -H "$headers" -H "$auth_token" "$api_url")
     local sha=$(curl -H "$headers" -H "$auth_token" "$api_url" | jq -r '.commit.sha')
     
-    if [ -z "$sha"]; then
+    if [ -z "$sha" ]; then
         exit 4
     fi
 
@@ -60,7 +60,6 @@ function get_and_modify_dockerfile {
   if [ "$reference_type" = "repo" ]; then
 
     local repo_segment=$(echo $repo_name | sed 's:/branches.*$::')
-    $repo_segment
 
     local GITHUB_TOKEN=$SCRIPT_GIT_TOKEN
 
@@ -72,7 +71,7 @@ function get_and_modify_dockerfile {
     dockerfile="$dockerfile"$'\n'"ENV REPO_SEGMENT='$repo_segment'"
     dockerfile="$dockerfile"$'\n'"ENV REPO_SHA='$sha'"
     dockerfile="$dockerfile"$'\n'"WORKDIR /app/services"
-    dockerfile="$dockerfile"$'\n''RUN wget --header="Authorization: token ${GIT_TOKEN}" "https://api.github.com/repos/${REPO_SEGMENT}/tarball/${REPO_SHA}" -O - | tar -xz --strip-components=1'
+    dockerfile="$dockerfile"$'\n''RUN wget --header="Authorization: token ${GIT_TOKEN}" "https://api.github.com/repos/${REPO_SEGMENT}/tarball/${REPO_SHA}" -O - | tar -xzvf - --strip-components=3 casper-ultimate-test-docker-push-7d4803b/service-root/'$implementation
     dockerfile="$dockerfile"$'\n''RUN echo ${GIT_TOKEN}'
     dockerfile="$dockerfile"$'\n''RUN ls'
   else
@@ -97,7 +96,7 @@ function create_docker_image {
 
   if [ -z "$image_exists" ] || [ "$rebuild" = true ]; then
     local dockerfile=$(get_and_modify_dockerfile "$path" "$implementation" "$reference_type" "$repo_name" "$sha")
-    echo "$dockerfile" | docker build -t "$label" -
+    echo "$dockerfile" | docker build --no-cache -t "$label" -
   else
     echo "Image with label $label already exists"
   fi
