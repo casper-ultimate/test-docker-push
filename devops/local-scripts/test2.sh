@@ -72,7 +72,7 @@ function get_and_modify_dockerfile {
     dockerfile="$dockerfile"$'\n'"ENV REPO_SHA='$sha'"
     dockerfile="$dockerfile"$'\n'"WORKDIR /app/services"
     dockerfile="$dockerfile"$'\n''RUN wget --header="Authorization: token ${GIT_TOKEN}" "https://api.github.com/repos/${REPO_SEGMENT}/tarball/${REPO_SHA}" -O - | tar -xzvf - --strip-components=3 casper-ultimate-test-docker-push-${REPO_SHA}/service-root/'$implementation
-    dockerfile="$dockerfile"$'\n''RUN echo ${GIT_TOKEN}'
+    dockerfile="$dockerfile"$'\n''RUN echo ${REPO_SHA}'
     dockerfile="$dockerfile"$'\n''RUN cat readme.md'
   else
     # Append the necessary content to the local Dockerfile
